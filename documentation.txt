@@ -1,5 +1,6 @@
 Документация по апи django для frontend разработчиков
 
+Django admin url: api/admin/
 Логин и пароль от Django админ панель: admin@gmail.com - 0000
 
 1. Корень прроекта
