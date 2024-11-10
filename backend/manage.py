@@ -16,7 +16,9 @@ def main():
             "forget to activate a virtual environment?"
         ) from exc
     execute_from_command_line(sys.argv)
-
+    from users.models import User
+    if not User.objects.filter(email='admin@gmail.com').exists():
+        User.objects.create_superuser('admin', 'admin@gmail.com', '0000')
 
 if __name__ == '__main__':
     main()
