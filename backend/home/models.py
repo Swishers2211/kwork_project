@@ -24,7 +24,7 @@ class Video(models.Model):
         verbose_name_plural = 'Видео'
 
     def __str__(self):
-        return f'Видео - {self.name}, просмотры - {self.views_count}, опубликовано - {self.created_at}'
+        return f'Видео - {self.video_file}, просмотры - {self.views_count}, опубликовано - {self.created_at}'
 
 class Comment(models.Model):
     video = models.ForeignKey(Video, on_delete=models.CASCADE, related_name='comments', verbose_name='Видео')
@@ -38,4 +38,4 @@ class Comment(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f'Комментарий от {self.author} к {self.video.name}'
+        return f'Комментарий от {self.author} к {self.video.video_file}'
