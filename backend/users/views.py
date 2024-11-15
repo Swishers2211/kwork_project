@@ -34,11 +34,14 @@ class RegisterAPIView(APIView): # Класс для регистрации ак�
     permission_classes = [AllowAny]
 
     def post(self, request):
-        serializer = RegisterSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            serializer = RegisterSerializer(data=request.data)
+            if serializer.is_valid(raise_exception=True):
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response({'message': 'Пользователь уже существует с такими данными'})
 
 def get_tokens_for_user(user): # функция для генерациии токена при логине пользователя в системе
     refresh = RefreshToken.for_user(user)
