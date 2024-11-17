@@ -13,7 +13,7 @@ from chat.serializers import ListMessageSerializer
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.chat_id = self.scope['url_route']['kwargs'].get('chat_id')
-        self.other_user = self.scope['url_route']['kwargs'].get('other_user')
+        # self.other_user = self.scope['url_route']['kwargs'].get('other_user')
 
         # Получаем текущего пользователя
         self.user = self.scope['user']
@@ -32,16 +32,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         'username': chat_partner.username
                     }
                 }))
-            elif self.other_user:
-                other_user_instance = await database_sync_to_async(User.objects.get)(id=self.other_user)
-                # Получаем или создаем комнату, где отправитель и получатель совпадают
-                room_instance = await database_sync_to_async(Room.objects.filter(Q(sender=self.user, receiver=other_user_instance) | Q(sender=other_user_instance, receiver=self.user)).first)()
-                if room_instance:
-                    self.chat_id = room_instance.id
-                    self.room_group_name = f'chat_{self.chat_id}'
-                    await self.channel_layer.group_add(self.room_group_name, self.channel_name)
-                    await self.accept()
-                    await self.send_chat_history()
+            # elif self.other_user:
+            #     other_user_instance = await database_sync_to_async(User.objects.get)(id=self.other_user)
+            #     # Получаем или создаем комнату, где отправитель и получатель совпадают
+            #     room_instance = await database_sync_to_async(Room.objects.filter(Q(sender=self.user, receiver=other_user_instance) | Q(sender=other_user_instance, receiver=self.user)).first)()
+            #     if room_instance:
+            #         self.chat_id = room_instance.id
+            #         self.room_group_name = f'chat_{self.chat_id}'
+            #         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+            #         await self.accept()
+            #         await self.send_chat_history()
             else:
                 # Если нет chat_id, пользователь подключается без комнаты
                 await self.accept()
