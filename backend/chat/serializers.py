@@ -22,9 +22,13 @@ class BaseMessageSerializer(serializers.ModelSerializer):
 
 class ListMessageSerializer(BaseMessageSerializer):
     created_at = serializers.DateTimeField(format="%H:%M")
+    message_read = serializers.SerializerMethodField()
+
+    def get_message_read(self, obj):
+        return 'Да' if obj.message_read else 'Нет'
 
     class Meta(BaseMessageSerializer.Meta):
-        fields = BaseMessageSerializer.Meta.fields + ['created_at']
+        fields = BaseMessageSerializer.Meta.fields + ['created_at', 'message_read']
 
 class RoomsSerializer(BaseSerializer):
     sender = ProfileSerializer()

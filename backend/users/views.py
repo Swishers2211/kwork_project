@@ -56,13 +56,13 @@ class LoginAPIView(APIView): # Класс для входа в систему
 
     def post(self, request):
         data = request.data
-        email = data.get('email')
+        username = data.get('username')
         password = data.get('password')
 
-        if email is None or password is None:
+        if username is None or password is None:
             return Response({'error': 'Нужен и логин, и пароль'}, status=status.HTTP_400_BAD_REQUEST)
         
-        user = authenticate(email=email, password=password) # если введенные данные есть в базе, то логинем
+        user = authenticate(username=username, password=password) # если введенные данные есть в базе, то логинем
 
         if user is None:
             return Response({'error': 'Неверные данные'}, status=status.HTTP_401_UNAUTHORIZED)

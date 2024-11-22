@@ -23,6 +23,8 @@ class Message(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='message_sender', verbose_name='Отправитель')
     message_text = models.TextField(max_length=1000, verbose_name='Текст сообщения', blank=True, null=True)
     message_image = models.ImageField(upload_to='messages/images/', blank=True, null=True, verbose_name='Изображение')
+    message_video = models.FileField(upload_to='message/videos/', blank=True, null=True, verbose_name='Видеофайл')
+    message_read = models.BooleanField(default=False, blank=False, null=True, verbose_name='Сообщение прочитано (Не прочитано по умолчанию)')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
