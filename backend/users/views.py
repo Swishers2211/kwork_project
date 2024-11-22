@@ -13,7 +13,10 @@ from rest_framework_simplejwt.exceptions import InvalidToken
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.middleware import csrf
 
-from users.models import User
+from users.models import (
+    User,
+    Subscription,
+)
 from users.serializers import (
     RegisterSerializer, 
     ProfileSerializer, 
@@ -147,3 +150,33 @@ class ListUserAPIView(APIView):
 
         data = {'list_user': ProfileSerializer(list_user, many=True).data}
         return Response(data, status=status.HTTP_200_OK)
+
+class SubscriptionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, user_id):
+        current_user = request.user
+        try:
+            target_user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "Пользователь не найден."}, status=404)
+
+        if Subscription.objects.filter(subscriber=current_user, target=target_user).exists():
+            return Response({"status": "Подписка уже существует."})
+        
+        Subscription.objects.create(subscriber=current_user, target=target_user)
+        return Response({"status": "Вы подписались"})
+
+    def delete(self, request, user_id):
+        current_user = request.user
+        try:
+            target_user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "Пользователь не найден."}, status=404)
+
+        subscription = Subscription.objects.filter(subscriber=current_user, target=target_user)
+        if subscription.exists():
+            subscription.delete()
+            return Response({"status": "Вы отписались"})
+        else:
+            return Response({"error": "Подписка не существует"}, status=404)

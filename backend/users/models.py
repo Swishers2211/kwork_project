@@ -40,3 +40,16 @@ class User(AbstractUser):
 
     def __str__(self):
         return f'Пользователь {self.username} - {self.email}'
+
+class Subscription(models.Model):
+    subscriber = models.ForeignKey(User, on_delete=models.CASCADE, related_name="subscriptions")  # Кто подписывается
+    target = models.ForeignKey(User, on_delete=models.CASCADE, related_name="subscribers")  # На кого подписываются
+    created_at = models.DateTimeField(auto_now_add=True)  # Дата подписки
+
+    class Meta:
+        unique_together = ('subscriber', 'target')  # Запретить дублирование подписок
+        verbose_name = "Подписка"
+        verbose_name_plural = "Подписки"
+
+    def __str__(self):
+        return f"{self.subscriber.username} -> {self.target.username}"

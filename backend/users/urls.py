@@ -9,11 +9,13 @@ from users.views import (
     CookieTokenObtainPairView,
     CookieTokenRefreshView,
     ListUserAPIView,
+    SubscriptionView,
 )
 
 app_name = 'users'
 
 urlpatterns = [
+    path('api/subscription/<int:user_id>/', SubscriptionView.as_view(),),
     path('api/list_user/', ListUserAPIView.as_view()),
     path('api/token/', CookieTokenObtainPairView.as_view()),
     path('api/token/refresh/', CookieTokenRefreshView.as_view()),

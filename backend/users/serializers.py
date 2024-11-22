@@ -2,7 +2,7 @@ from django.utils.timezone import now
 
 from rest_framework import serializers
 
-from users.models import User
+from users.models import User, Subscription
 
 class RegisterSerializer(serializers.ModelSerializer):
     username = serializers.CharField(max_length=60)
@@ -23,10 +23,12 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class ProfileSerializer(serializers.ModelSerializer):
     is_online = serializers.SerializerMethodField()
+    subscribers_count = serializers.SerializerMethodField()  # Количество подписчиков
+    subscriptions_count = serializers.SerializerMethodField()  # Количество подписок
 
     class Meta:
         model = User 
-        fields = ['id', 'username', 'email', 'last_online', 'is_online']
+        fields = ['id', 'username', 'email', 'last_online', 'is_online', 'subscribers_count', 'subscriptions_count']
 
     def get_is_online(self, obj):
         # Проверяем, был ли пользователь активен в последние 5 минут
@@ -34,9 +36,25 @@ class ProfileSerializer(serializers.ModelSerializer):
             return True
         return False
 
+    def get_subscribers_count(self, obj):
+        # Считаем количество записей в модели Subscription, где `target` — текущий пользователь
+        return Subscription.objects.filter(target=obj).count()
+
+    def get_subscriptions_count(self, obj):
+        # Считаем количество записей в модели Subscription, где `subscriber` — текущий пользователь
+        return Subscription.objects.filter(subscriber=obj).count()
+
     def to_representation(self, instance):
         data = super().to_representation(instance)
         request = self.context.get('request')
         if request and instance != request.user:
             data.pop('email', None)
         return data
+
+class SubscriptionSerializer(serializers.ModelSerializer):
+    subscriber = serializers.StringRelatedField()  # Имя подписчика
+    target = serializers.StringRelatedField()  # Имя цели
+
+    class Meta:
+        model = Subscription
+        fields = ['id', 'subscriber', 'target', 'created_at']
