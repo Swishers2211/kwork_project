@@ -83,6 +83,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     'message_read': message_instance.message_read,  # Добавляем message_id
                 }
             )
+        elif self.other_user:
+            message_instance = await self.save_message(self.room_group_name, user, message, image, video)
+
+            # Отправляем сообщение всем в группе
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'chat_message',
+                    'message': message,
+                    'sender_id': user.id,
+                    'sender_username': user.username,
+                    'message_read': message_instance.message_read,  # Добавляем message_id
+                }
+            )
 
     @database_sync_to_async
     def mark_message_as_read(self, message_id):
@@ -109,11 +123,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def get_or_create_room(self):
-        """Получаем или создаем комнату по продукту и пользователю-продавцу"""
+        """Получаем или создаем комнату по пользователю-получателю и пользователю-отправителю"""
         try:
             other_user = User.objects.get(id=self.other_user)
 
-            # Проверяем, существует ли уже комната между пользователем и продавцом
+            # Проверяем, существует ли уже комната между отправителем и получателем
             room = Room.objects.filter(sender=self.scope['user'], receiver=other_user).first()
 
             if room:
