@@ -59,6 +59,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = text_data_json.get('message')
         image = text_data_json.get('image')
         video = text_data_json.get('video')
+        message_action = text_data_json.get('message_action')
         user = self.scope['user']
 
         # Получаем или создаем комнату, если она не существует
@@ -72,17 +73,44 @@ class ChatConsumer(AsyncWebsocketConsumer):
             # Сохраняем сообщение и получаем его ID
             message_instance = await self.save_message(self.room_group_name, user, message, image, video)
 
-            # Отправляем сообщение всем в группе
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    'type': 'chat_message',
-                    'message': message,
-                    'sender_id': user.id,
-                    'sender_username': user.username,
-                    'message_read': message_instance.message_read,  # Добавляем message_id
-                }
-            )
+            if message_action == 'message_delete':
+                message_id = text_data_json.get('message_id')
+                if message_id:
+                    result = await self.message_delete(message_id)
+                    if result:
+                        await self.channel_layer.group_send(
+                            self.room_group_name,
+                            {
+                                'type': 'message_deleted',
+                                'message_id': message_id,
+                            }
+                        )
+            elif message_action == 'message_edit':
+                message_id = text_data_json.get('message_id')
+                new_content = text_data_json.get('new_content')
+                if message_id and new_content:
+                    result = await self.message_edit(message_id, new_content)
+                    if result:
+                        await self.channel_layer.group_send(
+                            self.room_group_name,
+                            {
+                                'type': 'message_edited',
+                                'message_id': message_id,
+                                'new_content': new_content,
+                            }
+                        )
+            else:
+                # Отправляем сообщение всем в группе
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'chat_message',
+                        'message': message,
+                        'sender_id': user.id,
+                        'sender_username': user.username,
+                        'message_read': message_instance.message_read,  # Добавляем message_id
+                    }
+                )
         elif self.other_user:
             message_instance = await self.save_message(self.room_group_name, user, message, image, video)
 
@@ -187,3 +215,40 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return room.receiver
         else:
             return room.sender
+
+    @database_sync_to_async
+    def message_delete(self, message_id):
+        try:
+            message = Message.objects.get(id=message_id, sender=self.user)
+            message.delete()
+            return True
+        except Message.DoesNotExist:
+            return False
+    
+    async def message_deleted(self, event):
+        message_id = event['message_id']
+
+        await self.send(text_data=json.dumps({
+            'message_action': 'message_delete',
+            'message_id': message_id
+        }))
+    
+    @database_sync_to_async
+    def message_edit(self, message_id, new_content):
+        try:
+            message = Message.objects.get(id=message_id, sender=self.user)
+            message.message_text = new_content
+            message.save()
+            return True
+        except Message.DoesNotExist:
+            return False
+        
+    async def message_edited(self, event):
+        message_id = event['message_id']
+        new_content = event['new_content']
+
+        await self.send(text_data=json.dumps({
+            'message_action': 'message_edit',
+            'message_id': message_id,
+            'new_content': new_content
+        }))
