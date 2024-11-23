@@ -2,7 +2,11 @@ from django.utils.timezone import now
 
 from rest_framework import serializers
 
-from users.models import User, Subscription
+from users.models import (
+    User, 
+    Interests, 
+    Subscription,
+)
 
 class RegisterSerializer(serializers.ModelSerializer):
     username = serializers.CharField(max_length=60)
@@ -20,6 +24,11 @@ class RegisterSerializer(serializers.ModelSerializer):
             instance.set_password(password)
         instance.save()
         return instance
+
+class InterestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Interests
+        fields = ['id', 'name', 'image_interest']
 
 class ProfileSerializer(serializers.ModelSerializer):
     is_online = serializers.SerializerMethodField()

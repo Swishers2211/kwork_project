@@ -16,10 +16,12 @@ from django.middleware import csrf
 from users.models import (
     User,
     Subscription,
+    Interests,
 )
 from users.serializers import (
     RegisterSerializer, 
     ProfileSerializer, 
+    InterestSerializer,
 )
 
 class CheckAuthAPIView(APIView): # Класс проверки авторизован ли пользователь или нет
@@ -180,3 +182,29 @@ class SubscriptionView(APIView):
             return Response({"status": "Вы отписались"})
         else:
             return Response({"error": "Подписка не существует"}, status=404)
+
+class AddInterestsAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        all_interests = Interests.objects.all()
+
+        data = {'interests': InterestSerializer(all_interests, many=True).data,}
+
+        return Response(data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        user = request.user  # Текущий пользователь
+        interest_ids = request.data.get('interests_ids', [])  # Список ID интересов
+
+        if not isinstance(interest_ids, list):  # Проверяем, что передан список
+            return Response({'error': 'interests_ids must be a list'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Получаем интересы из базы данных
+        interests = Interests.objects.filter(id__in=interest_ids)
+
+        # Добавляем интересы к пользователю
+        user.interests.set(interests)  # Заменяет старые интересы новыми
+        user.save()
+
+        return Response({'message': 'Интересы обновлены'}, status=status.HTTP_200_OK)

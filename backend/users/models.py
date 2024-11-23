@@ -4,11 +4,22 @@ from django.utils.timezone import now
 
 from django.contrib.auth.models import AbstractUser
 
+class Interests(models.Model):
+    name = models.CharField(max_length=128, verbose_name='Интерес')
+    image_interest = models.ImageField(upload_to='image/interests', null=True, blank=True, verbose_name='Лого интереса')
+
+    class Meta:
+        verbose_name = 'Интерес'
+        verbose_name_plural = 'Интересы'
+
+    def __str__(self):
+        return f'Интерес - {self.name}'
+
 class User(AbstractUser):
     email = models.EmailField(unique=True, verbose_name='Почта')
     username = models.CharField(unique=True, max_length=60, verbose_name='Имя пользователя')
     birth_date = models.DateField(null=True, blank=True, verbose_name="Дата рождения")
-    interests = models.CharField(max_length=255, verbose_name='Интересы', blank=True, null=True)
+    interests = models.ManyToManyField(Interests, null=True, blank=True, verbose_name='Интересы')
     last_online = models.DateTimeField(null=True, blank=True)
     is_online = models.BooleanField(default=False, editable=False)
 
