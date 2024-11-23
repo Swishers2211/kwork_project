@@ -12,6 +12,8 @@ from rest_framework_simplejwt.exceptions import InvalidToken
 
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.middleware import csrf
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 from users.models import (
     User,
@@ -27,6 +29,44 @@ from users.serializers import (
 class CheckAuthAPIView(APIView): # Класс проверки авторизован ли пользователь или нет
     permission_classes = [IsAuthenticated]
     
+    @swagger_auto_schema(
+        operation_summary='Проверка на аутентификацию',
+        operation_description='Проверяет на стороне бекенда, аутентифицирован пользователь или нет',
+        responses={
+            200: openapi.Response(
+                description="Пользователь аутентифицирован",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'isAuthenticated': openapi.Schema(
+                            type=openapi.TYPE_BOOLEAN,
+                            description='Статус аутентификации'
+                        ),
+                        'user_id': openapi.Schema(
+                            type=openapi.TYPE_INTEGER,
+                            description='ID пользователя'
+                        ),
+                        'user': openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            description='Имя пользователя'
+                        ),
+                    }
+                )
+            ),
+            401: openapi.Response(
+                description="Пользователь не авторизован",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            description='Сообщение об ошибке'
+                        )
+                    }
+                )
+            ),
+        },
+    )
     def get(self, request):
         if request.user.is_authenticated:
                 user_id = request.user.id
@@ -116,17 +156,66 @@ class CookieTokenRefreshView(TokenRefreshView):
         return super().finalize_response(request, response, *args, **kwargs)
     serializer_class = CookieTokenRefreshSerializer
 
-class DashboardAPIView(APIView): # Профиль пользователя
+class DashboardAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(
+        operation_summary="Получить профиль пользователя",
+        operation_description="Возвращает информацию о профиле пользователя по его ID",
+        responses={
+            200: ProfileSerializer,
+            404: openapi.Response(description="Пользователь не найден"),
+        },
+    )
     def get(self, request, user_id):
-        user = User.objects.filter(pk=user_id).first() # Получаем текущего пользователя
+        """
+        Получить информацию о профиле пользователя.
+        """
+        user = User.objects.filter(pk=user_id).first()
 
         if not user:
             return Response({'detail': 'Пользователь не найден'}, status=404)
 
         serializer = ProfileSerializer(user, context={'request': request})
         return Response(serializer.data)
+
+    @swagger_auto_schema(
+        operation_summary="Обновить дату рождения",
+        operation_description="Обновляет дату рождения пользователя. Формат даты: YYYY-MM-DD.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'birth_date': openapi.Schema(type=openapi.TYPE_STRING, format='date', description='Дата рождения пользователя'),
+            },
+            required=['birth_date'],
+        ),
+        responses={
+            200: openapi.Response(description="Дата рождения обновлена"),
+            400: openapi.Response(description="Неверный формат даты или отсутствует поле"),
+            403: openapi.Response(description="Нет доступа к профилю"),
+        },
+    )
+    def post(self, request, user_id):
+        """
+        Обновить дату рождения пользователя.
+        """
+        if request.user.id != user_id:
+            return Response({'detail': 'Нет доступа к этому профилю'}, status=403)
+
+        birth_date = request.data.get('birth_date')
+        if not birth_date:
+            return Response({'error': 'Дата рождения обязательна'}, status=400)
+
+        try:
+            birth_date = datetime.strptime(birth_date, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({'error': 'Неверный формат даты. Ожидается YYYY-MM-DD'}, status=400)
+
+        user = request.user
+        user.birth_date = birth_date
+        user.save()
+
+        return Response({'message': 'Дата рождения обновлена'}, status=200)
 
 class LogoutAPIView(APIView): # Класс для выхода из системы
     permission_classes = [IsAuthenticated]
@@ -147,15 +236,81 @@ class LogoutAPIView(APIView): # Класс для выхода из систем
 class ListUserAPIView(APIView):
     permission_classes = [AllowAny]
 
+    @swagger_auto_schema(
+        operation_summary="Получить список пользователей",
+        operation_description="Возвращает список всех пользователей.",
+        responses={
+            200: openapi.Response(
+                description="Список пользователей",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'list_user': openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            items=openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'id': openapi.Schema(
+                                        type=openapi.TYPE_INTEGER,
+                                        description="ID пользователя"
+                                    ),
+                                    'username': openapi.Schema(
+                                        type=openapi.TYPE_STRING,
+                                        description="Имя пользователя"
+                                    ),
+                                    'email': openapi.Schema(
+                                        type=openapi.TYPE_STRING,
+                                        description="Электронная почта пользователя"
+                                    ),
+                                    'last_online': openapi.Schema(
+                                        type=openapi.TYPE_STRING,
+                                        format='date-time',
+                                        description="Последний раз онлайн"
+                                    ),
+                                    'is_online': openapi.Schema(
+                                        type=openapi.TYPE_BOOLEAN,
+                                        description="Пользователь онлайн"
+                                    ),
+                                    'subscribers_count': openapi.Schema(
+                                        type=openapi.TYPE_INTEGER,
+                                        description="Количество подписчиков"
+                                    ),
+                                    'subscriptions_count': openapi.Schema(
+                                        type=openapi.TYPE_INTEGER,
+                                        description="Количество подписок"
+                                    ),
+                                }
+                            )
+                        )
+                    }
+                )
+            )
+        }
+    )
     def get(self, request):
         list_user = User.objects.all()
-
         data = {'list_user': ProfileSerializer(list_user, many=True).data}
         return Response(data, status=status.HTTP_200_OK)
 
 class SubscriptionView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(
+        operation_summary="Подписка на другого пользователя",
+        operation_description="Осуществляет подписку текущего пользователя на других пользователей",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'target_user': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID пользователя на, которого осуществляется подписка'),
+            },
+            required=['target_user'],
+        ),
+        responses={
+            200: openapi.Response(description="Подписка успешно создана"),
+            404: openapi.Response(description="Пользователь не найден"),
+            409: openapi.Response(description="Подписка уже существует"),
+        },
+    )
     def post(self, request, user_id):
         current_user = request.user
         try:
@@ -169,6 +324,21 @@ class SubscriptionView(APIView):
         Subscription.objects.create(subscriber=current_user, target=target_user)
         return Response({"status": "Вы подписались"})
 
+    @swagger_auto_schema(
+        operation_summary="Отписка от другого пользователя",
+        operation_description="Осуществляет отписку текущего пользователя от других пользователей",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'target_user': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID пользователя от которого осуществляется отписка'),
+            },
+            required=['target_user'],
+        ),
+        responses={
+            200: openapi.Response(description="Подписка успешно удалена"),
+            404: openapi.Response(description="Пользователь не найден"),
+        },
+    )
     def delete(self, request, user_id):
         current_user = request.user
         try:
@@ -186,6 +356,14 @@ class SubscriptionView(APIView):
 class AddInterestsAPIView(APIView):
     permission_classes = [AllowAny]
 
+    @swagger_auto_schema(
+        operation_summary="Получить список всех интересов",
+        operation_description="Получаем список всех существующих интересов",
+        responses={
+            200: InterestSerializer,
+            404: openapi.Response(description="Интересы не найдены."),
+        },
+    )
     def get(self, request):
         all_interests = Interests.objects.all()
 
@@ -193,6 +371,26 @@ class AddInterestsAPIView(APIView):
 
         return Response(data, status=status.HTTP_200_OK)
 
+    @swagger_auto_schema(
+        operation_summary="Добавить интересы для пользователя",
+        operation_description="Добавляет интересы для пользователя",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'interests_ids': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(type=openapi.TYPE_INTEGER),
+                    description="Список ID интересов"
+                ),
+            },
+            required=['interests_ids'],
+        ),
+        responses={
+            200: openapi.Response(description="Интересы пользователя обновлены"),
+            400: openapi.Response(description="Неверные данные"),
+            403: openapi.Response(description="Нет доступа к профилю"),
+        },
+    )
     def post(self, request):
         user = request.user  # Текущий пользователь
         interest_ids = request.data.get('interests_ids', [])  # Список ID интересов

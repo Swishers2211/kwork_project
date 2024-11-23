@@ -16,7 +16,7 @@ from users.views import (
 app_name = 'users'
 
 urlpatterns = [
-    path('api/all_filters/', AddInterestsAPIView.as_view(),),
+    path('api/add_interests/', AddInterestsAPIView.as_view(),),
     path('api/subscription/<int:user_id>/', SubscriptionView.as_view(),),
     path('api/list_user/', ListUserAPIView.as_view()),
     path('api/token/', CookieTokenObtainPairView.as_view()),
