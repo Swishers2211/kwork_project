@@ -16,6 +16,7 @@ class Video(models.Model):
     category_video = models.ForeignKey(CategoryVideo, on_delete=models.CASCADE, verbose_name='Категория видео')
     author = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Автор видео')
     video_file = models.FileField(upload_to='videos/', verbose_name='Видео файл')
+    video_preview = models.ImageField(upload_to='video/video_preview', null=True, blank=True, verbose_name='Превью видео')
     views_count = models.PositiveIntegerField(default=0, verbose_name="Количество просмотров")
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -29,7 +30,9 @@ class Video(models.Model):
 class Comment(models.Model):
     video = models.ForeignKey(Video, on_delete=models.CASCADE, related_name='comments', verbose_name='Видео')
     author = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Автор комментария')
-    content = models.TextField(max_length=1000, verbose_name='Содержание комментария')
+    content = models.TextField(max_length=1000, verbose_name='Содержание комментария',null=True, blank=True)
+    comment_image = models.ImageField(upload_to='comment/image', null=True, blank=True, verbose_name='Комментарий картинка')
+    comment_video = models.FileField(upload_to='comment/video', null=True, blank=True, verbose_name='Комментарий видео')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
 
     class Meta:

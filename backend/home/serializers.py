@@ -14,7 +14,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ['author', 'content', 'created_at']
+        fields = ['id', 'author', 'content', 'created_at', 'comment_image', 'comment_video']
 
 class BaseVideoSerializer(serializers.ModelSerializer):
     category_video = CategoryVideoSerializer()
@@ -22,7 +22,7 @@ class BaseVideoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Video
-        fields = ['category_video', 'video_file', 'author', 'views_count', 'created_at']
+        fields = ['category_video', 'video_file', 'author', 'views_count', 'created_at', 'video_preview']
 
 class CreateVideoSerializer(BaseVideoSerializer):
     class Meta(BaseVideoSerializer.Meta):

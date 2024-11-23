@@ -54,9 +54,8 @@ class AddCommentAPIView(APIView):
             return Response({'message': 'Видео не найдено.'}, status=status.HTTP_400_BAD_REQUEST)
         
         list_comments = Comment.objects.filter(video=video)
-
         data = {
             'video': BaseVideoSerializer(video).data,
-            'list_comments': CommentSerializer(list_comments, many=True).data
+            'list_comments': CommentSerializer(list_comments, many=True).data,
         }
         return Response(data, status=status.HTTP_200_OK)
