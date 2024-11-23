@@ -13,7 +13,7 @@ class CategoryVideo(models.Model):
         return f'Категория {self.name}'
 
 class Video(models.Model):
-    category_video = models.ForeignKey(CategoryVideo, on_delete=models.CASCADE, verbose_name='Категория видео')
+    category_video = models.ForeignKey(CategoryVideo, on_delete=models.CASCADE, verbose_name='Категория видео', null=True, blank=True)
     author = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Автор видео')
     video_file = models.FileField(upload_to='videos/', verbose_name='Видео файл')
     video_preview = models.ImageField(upload_to='video/video_preview', null=True, blank=True, verbose_name='Превью видео')

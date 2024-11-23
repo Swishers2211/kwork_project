@@ -8,7 +8,8 @@ from chat.middleware import JWTAuthMiddleware
 
 django.setup()
 
-from chat.routing import websocket_urlpatterns
+from chat.routing import websocket_urlpatterns as chat_websocket_urlpatterns
+from home.routing import websocket_urlpatterns as home_websocket_urlpatterns
 
 import chat.routing
 
@@ -19,6 +20,8 @@ django_asgi_app = get_asgi_application()
 application = ProtocolTypeRouter(
 	{
 		'http': django_asgi_app,
-		'websocket': AllowedHostsOriginValidator(JWTAuthMiddleware(URLRouter(websocket_urlpatterns))),
+		'websocket': AllowedHostsOriginValidator(JWTAuthMiddleware(URLRouter(
+            chat_websocket_urlpatterns + home_websocket_urlpatterns
+		))),
 	}
 )
