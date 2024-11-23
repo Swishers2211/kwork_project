@@ -239,6 +239,26 @@ class ListUserAPIView(APIView):
     @swagger_auto_schema(
         operation_summary="Получить список пользователей",
         operation_description="Возвращает список всех пользователей.",
+        manual_parameters=[
+            openapi.Parameter(
+                'interests',
+                openapi.IN_QUERY,
+                description="Список интересов",
+                type=openapi.TYPE_STRING
+            ),
+            openapi.Parameter(
+                'age_min',
+                openapi.IN_QUERY,
+                description="Минимальный возраст пользователя",
+                type=openapi.TYPE_INTEGER
+            ),
+            openapi.Parameter(
+                'age_max',
+                openapi.IN_QUERY,
+                description="Максимальный возраст пользователя",
+                type=openapi.TYPE_INTEGER
+            )
+        ],
         responses={
             200: openapi.Response(
                 description="Список пользователей",
@@ -288,8 +308,29 @@ class ListUserAPIView(APIView):
         }
     )
     def get(self, request):
-        list_user = User.objects.all()
-        data = {'list_user': ProfileSerializer(list_user, many=True).data}
+        # Получение параметров фильтра
+        interests = request.query_params.getlist('interests', [])  # Список интересов
+        age_min = request.query_params.get('age_min')  # Минимальный возраст
+        age_max = request.query_params.get('age_max')  # Максимальный возраст
+
+        # Базовый запрос пользователей
+        users_query = User.objects.all()
+
+        # Фильтр по интересам
+        if interests:
+            users_query = users_query.filter(interests__name__in=interests).distinct()
+
+        # Фильтр по возрасту
+        today = date.today()
+        if age_min:
+            birth_date_max = today.replace(year=today.year - int(age_min))  # Дата рождения для минимального возраста
+            users_query = users_query.filter(birth_date__lte=birth_date_max)
+        if age_max:
+            birth_date_min = today.replace(year=today.year - int(age_max))  # Дата рождения для максимального возраста
+            users_query = users_query.filter(birth_date__gte=birth_date_min)
+
+        # Сериализация данных
+        data = {'list_user': ProfileSerializer(users_query, many=True).data}
         return Response(data, status=status.HTTP_200_OK)
 
 class SubscriptionView(APIView):
