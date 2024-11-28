@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'users',
     'chat',
     'home',
+    'marketplace',
 ]
 
 REST_FRAMEWORK = {
@@ -85,6 +86,13 @@ ASGI_APPLICATION = 'backend.asgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+
+# DATABASES = {
+#     'default': {
+#         "ENGINE": 'django.db.backends.sqlite3',
+#         'NAME': 'sqlite3',
+#     }
+# }
 
 DATABASES = {
     'default': {

@@ -31,8 +31,8 @@ class Comment(models.Model):
     video = models.ForeignKey(Video, on_delete=models.CASCADE, related_name='comments', verbose_name='Видео')
     author = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Автор комментария')
     content = models.TextField(max_length=1000, verbose_name='Содержание комментария',null=True, blank=True)
-    comment_image = models.ImageField(upload_to='comment/image', null=True, blank=True, verbose_name='Комментарий картинка')
-    comment_video = models.FileField(upload_to='comment/video', null=True, blank=True, verbose_name='Комментарий видео')
+    comment_image = models.ImageField(upload_to='comments/images', null=True, blank=True, verbose_name='Комментарий картинка')
+    comment_video = models.FileField(upload_to='comments/videos', null=True, blank=True, verbose_name='Комментарий видео')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
 
     class Meta:
@@ -42,3 +42,17 @@ class Comment(models.Model):
 
     def __str__(self):
         return f'Комментарий от {self.author} к {self.video.video_file}'
+    
+class CommentVoice(models.Model):
+    video = models.ForeignKey(Video, on_delete=models.CASCADE, related_name='comment_voice', verbose_name='Видео')
+    author = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Автор комментария')
+    comment_voice = models.FileField(upload_to='comments/voices', )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
+
+    class Meta:
+        verbose_name = 'Голосовой комментарий'
+        verbose_name_plural = 'Голосывые комментарии'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Комментарий от {self.author} к {self.video.comment_voice}'

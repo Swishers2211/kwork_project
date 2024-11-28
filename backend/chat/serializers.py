@@ -23,12 +23,38 @@ class BaseMessageSerializer(serializers.ModelSerializer):
 class ListMessageSerializer(BaseMessageSerializer):
     created_at = serializers.DateTimeField(format="%H:%M")
     message_read = serializers.SerializerMethodField()
+    message_type = serializers.SerializerMethodField()
+    content = serializers.SerializerMethodField()
 
     def get_message_read(self, obj):
         return 'Да' if obj.message_read else 'Нет'
 
+    def get_message_type(self, obj):
+        if hasattr(obj, 'message_text') and obj.message_text:
+            return 'text'
+        elif hasattr(obj, 'message_image') and obj.message_image:
+            return 'image'
+        elif hasattr(obj, 'message_video') and obj.message_video:
+            return 'video'
+        elif hasattr(obj, 'voice_message') and obj.voice_message:
+            return 'voice'
+        return 'unknown'
+
+    def get_content(self, obj):
+        if hasattr(obj, 'message_text') and obj.message_text:
+            return obj.message_text
+        elif hasattr(obj, 'message_image') and obj.message_image:
+            return obj.message_image.url
+        elif hasattr(obj, 'message_video') and obj.message_video:
+            return obj.message_video.url
+        elif hasattr(obj, 'voice_message') and obj.voice_message:
+            return obj.voice_message.url
+        return None
+
     class Meta(BaseMessageSerializer.Meta):
-        fields = BaseMessageSerializer.Meta.fields + ['created_at', 'message_read']
+        fields = BaseMessageSerializer.Meta.fields + [
+            'created_at', 'message_read', 'message_type', 'content',
+        ]
 
 class RoomsSerializer(BaseSerializer):
     sender = ProfileSerializer()

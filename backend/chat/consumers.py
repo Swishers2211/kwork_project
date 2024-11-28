@@ -3,7 +3,11 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from django.db.models import Q
 from channels.db import database_sync_to_async
 
-from chat.models import Room, Message
+from chat.models import (
+    Room,
+    Message,
+    VoiceMessage
+)
 from users.models import User
 from chat.serializers import ListMessageSerializer
 
@@ -59,6 +63,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = text_data_json.get('message')
         image = text_data_json.get('image')
         video = text_data_json.get('video')
+        voice_message = text_data_json.get('voice_message')
         message_action = text_data_json.get('message_action')
         user = self.scope['user']
 
@@ -71,7 +76,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         if self.chat_id:
             # Сохраняем сообщение и получаем его ID
-            message_instance = await self.save_message(self.room_group_name, user, message, image, video)
+            message_instance = await self.save_message(self.room_group_name, user, message, image, video, voice_message)
 
             if message_action == 'message_delete':
                 message_id = text_data_json.get('message_id')
@@ -106,6 +111,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     {
                         'type': 'chat_message',
                         'message': message,
+                        'video': video,
+                        'image': image,
+                        'voice_message': voice_message,
                         'sender_id': user.id,
                         'sender_username': user.username,
                         'message_read': message_instance.message_read,  # Добавляем message_id
@@ -120,6 +128,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 {
                     'type': 'chat_message',
                     'message': message,
+                    'video': video,
+                    'image': image,
+                    'voice_message': voice_message,
                     'sender_id': user.id,
                     'sender_username': user.username,
                     'message_read': message_instance.message_read,  # Добавляем message_id
@@ -171,21 +182,34 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return None
 
     @database_sync_to_async
-    def save_message(self, room_group_name, user, message=None, image=None, video=None):
+    def save_message(self, room_group_name, user, message=None, image=None, video=None, voice_message=None):
+        # Получаем ID комнаты из имени группы
         room_id = int(room_group_name.split('_')[-1])
         room = Room.objects.get(id=room_id)
-        msg = Message.objects.create(
-            room=room,
-            sender=user,
-            message_text=message if message else '',
-            message_image=image if image else None,
-            message_video=video if video else None,
-            message_read=False,
-        )
-        return msg
+        
+        # Проверяем и сохраняем сообщения соответствующего типа
+        if any([message, image, video]):
+            return Message.objects.create(
+                room=room,
+                sender=user,
+                message_text=message or '',
+                message_image=image,
+                message_video=video,
+                message_read=False,
+            )
+        elif voice_message:
+            return VoiceMessage.objects.create(
+                room=room,
+                sender=user,
+                voice_message=voice_message,
+                message_read=False,
+            )
+        else:
+            raise ValueError("Необходимо передать хотя бы одно из значений: message, image, video или voice_message")
 
     async def send_chat_history(self):
         if self.chat_id:
+            # Получаем объект комнаты
             room_instance = await database_sync_to_async(Room.objects.get)(id=self.chat_id)
 
             # Обновляем статус сообщений, помечая их как прочитанные
@@ -196,12 +220,33 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 ).exclude(sender=self.user).update
             )(message_read=True)
 
-            # Получаем историю сообщений
+            await database_sync_to_async(
+                VoiceMessage.objects.filter(
+                    room=room_instance,
+                    message_read=False
+                ).exclude(sender=self.user).update
+            )(message_read=True)
+
+            # Получаем текстовые и голосовые сообщения
             messages = await database_sync_to_async(list)(
                 Message.objects.filter(room=room_instance).order_by('created_at')
             )
+            voice_messages = await database_sync_to_async(list)(
+                VoiceMessage.objects.filter(room=room_instance).order_by('created_at')
+            )
+
+            # Объединяем и сортируем сообщения по времени создания
+            all_messages = sorted(
+                messages + voice_messages,
+                key=lambda msg: msg.created_at
+            )
+
+            # Сериализация объединённых сообщений
+            serialized_messages = ListMessageSerializer(all_messages, many=True).data
+
+            # Отправка истории сообщений
             await self.send(text_data=json.dumps({
-                'history': ListMessageSerializer(messages, many=True).data,
+                'history': serialized_messages,
             }))
 
     @database_sync_to_async
@@ -219,7 +264,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def message_delete(self, message_id):
         try:
-            message = Message.objects.get(id=message_id, sender=self.user)
+            message = (Message.objects.get(id=message_id, sender=self.user) | VoiceMessage.objects.get(id=message_id, sender=self.user)) 
             message.delete()
             return True
         except Message.DoesNotExist:

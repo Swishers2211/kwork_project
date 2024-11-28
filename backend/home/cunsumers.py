@@ -4,7 +4,8 @@ from channels.db import database_sync_to_async
 
 from home.models import (
     Video,
-    Comment
+    Comment,
+    CommentVoice
 )
 from home.serializers import CommentSerializer
 
@@ -36,11 +37,12 @@ class CommentConsumer(AsyncWebsocketConsumer):
         message = text_data_json.get('message')
         image = text_data_json.get('image')
         video = text_data_json.get('video')
+        comment_voice = text_data_json('comment_voice')
         user = self.scope['user']
 
         if self.video_id:
             # Сохраняем сообщение и получаем его ID
-            await self.save_message(self.room_group_name, user, message, image, video)
+            await self.save_message(self.room_group_name, user, message, image, video, comment_voice)
 
             # Отправляем сообщение всем в группе
             await self.channel_layer.group_send(
@@ -65,17 +67,21 @@ class CommentConsumer(AsyncWebsocketConsumer):
         }))
 
     @database_sync_to_async
-    def save_message(self, room_group_name, user, message=None, image=None, video=None):
+    def save_message(self, room_group_name, user, message=None, image=None, video=None, comment_voice=None):
         video_id = int(room_group_name.split('_')[-1])
         video = Video.objects.get(id=video_id)
-        cmnt = Comment.objects.create(
-            video=video,
-            author=user,
-            content=message if message else '',
-            comment_image=image if image else '',
-            comment_video=video if video else '',
-        )
-        return cmnt
+        if any([message, image, video]):
+            cmnt = Comment.objects.create(
+                video=video,
+                author=user,
+                content=message if message else '',
+                comment_image=image if image else '',
+                comment_video=video if video else '',
+            )
+            return cmnt
+        elif comment_voice:
+            cmnt = CommentVoice.objects.create(video=video, author=user, comment_voice=comment_voice)
+            return cmnt
 
     async def send_comments_history(self):
         if self.video_id:
@@ -84,9 +90,12 @@ class CommentConsumer(AsyncWebsocketConsumer):
 
             # Получаем комментарии асинхронно
             comments = await database_sync_to_async(list)(Comment.objects.filter(video=video_instance).order_by('-created_at'))
-
+            voice_comments = await database_sync_to_async(list)(CommentVoice.objects.filter(video=video_instance).order_by('-created_at'))
             # Сериализация комментариев асинхронно через database_sync_to_async
-            comments_data = await database_sync_to_async(self.serialize_comments)(comments)
+
+            comments_all = sorted(comments+voice_comments, key=lambda msg: msg.created_at)
+
+            comments_data = await database_sync_to_async(self.serialize_comments)(comments_all)
 
             await self.send(text_data=json.dumps({
                 'history': comments_data,
