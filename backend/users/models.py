@@ -19,7 +19,7 @@ class User(AbstractUser):
     email = models.EmailField(unique=True, verbose_name='Почта')
     username = models.CharField(unique=True, max_length=60, verbose_name='Имя пользователя')
     birth_date = models.DateField(null=True, blank=True, verbose_name="Дата рождения")
-    interests = models.ManyToManyField(Interests, null=True, blank=True, verbose_name='Интересы')
+    interests = models.ManyToManyField(Interests, blank=True, verbose_name='Интересы')
     last_online = models.DateTimeField(null=True, blank=True)
     is_online = models.BooleanField(default=False, editable=False)
 

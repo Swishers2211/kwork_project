@@ -61,6 +61,40 @@ class SubCategory(models.Model):
     def __str__(self):
         return f'Подкатегория - {self.name} - доп. категория {self.additional_category.name} - главная категория {self.additional_category.main_category.name}'
 
+class Attribute(models.Model):
+    name = models.CharField(max_length=128, verbose_name='Название атрибута')
+    main_category = models.ForeignKey(MainCategory, on_delete=models.CASCADE, verbose_name='Главная категория')
+    additional_category = models.ForeignKey(AdditionalCategory, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Доп. Категория')
+
+    class Meta:
+        verbose_name = 'Атрибут категории'
+        verbose_name_plural = 'Атрибуты категорий'
+
+    def __str__(self):
+        return f'Атрибут: {self.name} - категория: {self.main_category.name}'
+
+class AdditionalAttribute(models.Model):
+    attribute = models.ForeignKey(Attribute, on_delete=models.CASCADE, verbose_name='Атрибут')
+    name = models.CharField(max_length=255, verbose_name='Название доп. Атрибута')
+
+    class Meta:
+        verbose_name = 'Доп. Атрибут'
+        verbose_name_plural = 'Доп. Атрибуты'
+
+    def __str__(self):
+        return f'Доп. Атрибут: {self.name} - Главный атрибут: {self.attribute.name}'
+    
+class SubAttribute(models.Model):
+    additional_attribute = models.ForeignKey(AdditionalAttribute, on_delete=models.CASCADE, verbose_name='Доп. Атрибут')
+    name = models.CharField(max_length=255, verbose_name='Название податрибута')
+
+    class Meta:
+        verbose_name = 'Под атрибут'
+        verbose_name_plural = 'Под атрибуты'
+
+    def __str__(self):
+        return f'Под атрибут {self.name} - Доп. атрибут: {self.additional_attribute.name} - Главный атрибут {self.additional_attribute.attribute.name}'
+
 class RoomCount(models.Model):
     room_count = models.PositiveIntegerField(verbose_name='Количество комнат')
 
@@ -89,29 +123,6 @@ class Ad(models.Model):
     
     def __str__(self):
         return f'Предложение -> {self.name} - {self.author.username} - {self.main_category.name}'
-    
-class AdAttribute(models.Model):
-    name = models.CharField(max_length=128, verbose_name='Название атрибута')
-    main_category = models.ForeignKey(MainCategory, on_delete=models.CASCADE, verbose_name='Главная категория')
-
-    class Meta:
-        verbose_name = 'Атрибут категории'
-        verbose_name_plural = 'Атрибуты категорий'
-
-    def __str__(self):
-        return f'Атрибут: {self.name} (Категория: {self.main_category.name})'
-
-class AdAttributeValue(models.Model):
-    ad = models.ForeignKey(Ad, on_delete=models.CASCADE, verbose_name='Объявление')
-    attribute = models.ForeignKey(AdAttribute, on_delete=models.CASCADE, verbose_name='Атрибут')
-    value = models.CharField(max_length=255, verbose_name='Значение')
-
-    class Meta:
-        verbose_name = 'Значение атрибута'
-        verbose_name_plural = 'Значения атрибутов'
-
-    def __str__(self):
-        return f'Значения атрибута: {self.attribute.name}- значение: {self.value} (Объявление: {self.ad.name})'
     
 class AdVideo(models.Model):
     ad = models.ForeignKey(Ad, on_delete=models.CASCADE, verbose_name='Предложение')

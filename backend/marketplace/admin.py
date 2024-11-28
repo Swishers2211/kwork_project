@@ -7,25 +7,21 @@ from marketplace.models import (
     AdVideo,
     AdImage,
     RoomCount,
-    AdAttribute,
-    AdAttributeValue,
+    Attribute,
+    AdditionalAttribute,
     AdditionalCategory,
     MainCategory,
-    SubCategory
+    SubCategory,
 )
 
+# Регистрация моделей
 admin.site.register(AdType)
 admin.site.register(City)
-admin.site.register(AdAddress)
 admin.site.register(RoomCount)
-admin.site.register(AdditionalCategory)
-admin.site.register(AdAttribute)
-admin.site.register(AdAttributeValue)
-admin.site.register(MainCategory)
 admin.site.register(SubCategory)
 
-# Inline для картинок
-class AdImageInline(admin.TabularInline):  # Используем TabularInline для табличного отображения
+# Inline для изображений
+class AdImageInline(admin.TabularInline):
     model = AdImage
     extra = 1  # Количество пустых строк для добавления новых объектов
 
@@ -50,4 +46,40 @@ class AdAdmin(admin.ModelAdmin):
     def get_city(self, obj):
         address = obj.adaddress_set.first() 
         return address.city.city_name if address and address.city else "—"
-    get_city.short_description = 'сity'
+    get_city.short_description = 'City'
+
+# Inline для дополнительных категорий
+class AdditionalCategoryInline(admin.TabularInline):  # Табличный вывод
+    model = AdditionalCategory
+    extra = 1  # Количество пустых строк для добавления новых объектов
+
+# Inline для атрибутов
+class AttributeInline(admin.TabularInline):  # Табличный вывод
+    model = Attribute
+    extra = 1  # Количество пустых строк для добавления новых объектов
+
+@admin.register(MainCategory)
+class MainCategoryAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
+    inlines = [AdditionalCategoryInline, AttributeInline]
+
+class SubCategoryInline(admin.TabularInline):
+    model = SubCategory
+    extra = 1
+
+@admin.register(AdditionalCategory)
+class AdditionalCategoryAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
+    inlines = [SubCategoryInline]
+
+class AttributeInline(admin.TabularInline):
+    model = AdditionalAttribute
+    extra = 1
+
+@admin.register(Attribute)
+class AdAttributeAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
+    inlines = [AttributeInline]
