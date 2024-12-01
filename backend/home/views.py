@@ -37,6 +37,12 @@ class VideosAPIView(APIView):
                             items=openapi.Schema(  # Используем items для массива
                                 type=openapi.TYPE_OBJECT,
                                 properties={
+                                    'id': openapi.Schema(
+                                        type=openapi.TYPE_OBJECT,
+                                        properties={
+                                            'id': openapi.Schema(type=openapi.TYPE_INTEGER, description="ID видео"),
+                                        }
+                                    ),
                                     'category_video': openapi.Schema(
                                         type=openapi.TYPE_OBJECT,
                                         properties={
@@ -76,6 +82,12 @@ class VideosAPIView(APIView):
                             items=openapi.Schema(  # Используем items для массива
                                 type=openapi.TYPE_OBJECT,
                                 properties={
+                                    'id': openapi.Schema(
+                                        type=openapi.TYPE_OBJECT,
+                                        properties={
+                                            'id': openapi.Schema(type=openapi.TYPE_INTEGER, description="ID видео"),
+                                        }
+                                    ),
                                     'category_video': openapi.Schema(
                                         type=openapi.TYPE_OBJECT,
                                         properties={

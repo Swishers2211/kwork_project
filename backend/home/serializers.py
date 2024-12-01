@@ -39,7 +39,7 @@ class BaseVideoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Video
-        fields = ['category_video', 'video_file', 'author', 'views_count', 'created_at', 'video_preview']
+        fields = ['id', 'category_video', 'video_file', 'author', 'views_count', 'created_at', 'video_preview']
 
 class CreateVideoSerializer(BaseVideoSerializer):
     class Meta(BaseVideoSerializer.Meta):

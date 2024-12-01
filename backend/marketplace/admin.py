@@ -12,6 +12,7 @@ from marketplace.models import (
     AdditionalCategory,
     MainCategory,
     SubCategory,
+    SubAttribute
 )
 
 # Регистрация моделей
@@ -19,6 +20,8 @@ admin.site.register(AdType)
 admin.site.register(City)
 admin.site.register(RoomCount)
 admin.site.register(SubCategory)
+admin.site.register(AdditionalAttribute)
+admin.site.register(SubAttribute)
 
 # Inline для изображений
 class AdImageInline(admin.TabularInline):

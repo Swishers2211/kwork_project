@@ -65,10 +65,11 @@ class Attribute(models.Model):
     name = models.CharField(max_length=128, verbose_name='Название атрибута')
     main_category = models.ForeignKey(MainCategory, on_delete=models.CASCADE, verbose_name='Главная категория')
     additional_category = models.ForeignKey(AdditionalCategory, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Доп. Категория')
+    subcategory = models.ForeignKey(SubCategory, on_delete=models.CASCADE, verbose_name='Подкатегория')
 
     class Meta:
-        verbose_name = 'Атрибут категории'
-        verbose_name_plural = 'Атрибуты категорий'
+        verbose_name = 'Главный атрибут'
+        verbose_name_plural = 'Главные атрибуты'
 
     def __str__(self):
         return f'Атрибут: {self.name} - категория: {self.main_category.name}'
@@ -78,12 +79,12 @@ class AdditionalAttribute(models.Model):
     name = models.CharField(max_length=255, verbose_name='Название доп. Атрибута')
 
     class Meta:
-        verbose_name = 'Доп. Атрибут'
-        verbose_name_plural = 'Доп. Атрибуты'
+        verbose_name = 'Дополнительный Атрибут'
+        verbose_name_plural = 'Дополнительные Атрибуты'
 
     def __str__(self):
         return f'Доп. Атрибут: {self.name} - Главный атрибут: {self.attribute.name}'
-    
+
 class SubAttribute(models.Model):
     additional_attribute = models.ForeignKey(AdditionalAttribute, on_delete=models.CASCADE, verbose_name='Доп. Атрибут')
     name = models.CharField(max_length=255, verbose_name='Название податрибута')
@@ -104,15 +105,18 @@ class RoomCount(models.Model):
     
     def __str__(self):
         return f'Количество комнат -> {self.room_count}'
-    
+
 class Ad(models.Model):
     name = models.CharField(max_length=128, verbose_name='Название предлжения')
     description = models.TextField(verbose_name='Описание предложения')
     author = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Автор предложения')
+    city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name='Город')
     main_category = models.ForeignKey(MainCategory, on_delete=models.CASCADE, verbose_name='Главная категория')
     additional_category = models.ForeignKey(AdditionalCategory, on_delete=models.CASCADE, verbose_name='Доп. категория')
     sub_category = models.ForeignKey(SubCategory, on_delete=models.CASCADE, verbose_name='Подкатегория')
-    room_count = models.ForeignKey(RoomCount, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Количество комнат')
+    attribute = models.ForeignKey(Attribute, on_delete=models.CASCADE, verbose_name='Главный атрибут', related_name='ads_as_attribute')
+    additional_attribute = models.ForeignKey(AdditionalAttribute, on_delete=models.CASCADE, verbose_name='Доп. атрибут', related_name='ads_as_additional_attribute')
+    subattribute = models.ForeignKey(SubAttribute, on_delete=models.CASCADE, verbose_name='Податрибут атрибут', related_name='ads_as_subattribute')
     ad_type = models.ForeignKey(AdType, on_delete=models.CASCADE, verbose_name='Тип объявления')
     price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Цена')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -125,7 +129,7 @@ class Ad(models.Model):
         return f'Предложение -> {self.name} - {self.author.username} - {self.main_category.name}'
     
 class AdVideo(models.Model):
-    ad = models.ForeignKey(Ad, on_delete=models.CASCADE, verbose_name='Предложение')
+    ad = models.ForeignKey(Ad, on_delete=models.CASCADE, related_name='videos',  verbose_name='Предложение')
     video = models.FileField(upload_to='videos/ad_videos/', verbose_name='Видео')
 
     class Meta:
@@ -136,7 +140,7 @@ class AdVideo(models.Model):
         return f'Видео предложения -> {self.ad.name}'
 
 class AdImage(models.Model):
-    ad = models.ForeignKey(Ad, on_delete=models.CASCADE, verbose_name='Предложение')
+    ad = models.ForeignKey(Ad, on_delete=models.CASCADE, related_name='images', verbose_name='Предложение')
     image = models.ImageField(upload_to='images/ad_images/', verbose_name='Фото')
 
     class Meta:
