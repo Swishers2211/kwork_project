@@ -53,4 +53,3 @@ class CreateVideoSerializer(BaseVideoSerializer):
         data.pop('views_count')
         data.pop('comments')
         return data
-
