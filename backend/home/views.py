@@ -6,6 +6,10 @@ from rest_framework.views import APIView
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
+from home.swagger_chemas import (
+    create_video,
+)
+
 from users.models import (
     User,
     Subscription
@@ -147,6 +151,7 @@ class VideosAPIView(APIView):
 class CreateVideoAPIView(APIView):
     permission_classes = [IsAuthenticated]
     
+    @swagger_auto_schema(**create_video)
     def post(self, request):
         serializer = CreateVideoSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):

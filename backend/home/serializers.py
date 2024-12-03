@@ -36,17 +36,21 @@ class CommentSerializer(serializers.ModelSerializer):
 class BaseVideoSerializer(serializers.ModelSerializer):
     category_video = CategoryVideoSerializer()
     created_at = serializers.DateTimeField(format='%Y-%m-%d %H:%M')
+    author = serializers.StringRelatedField(read_only=True)
 
     class Meta:
         model = Video
         fields = ['id', 'category_video', 'video_file', 'author', 'views_count', 'created_at', 'video_preview']
 
 class CreateVideoSerializer(BaseVideoSerializer):
+    category_video = serializers.PrimaryKeyRelatedField(queryset=CategoryVideo.objects.all())
     class Meta(BaseVideoSerializer.Meta):
         pass
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
+        data.pop('id')
         data.pop('views_count')
         data.pop('comments')
         return data
+
