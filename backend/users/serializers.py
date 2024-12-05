@@ -8,6 +8,9 @@ from users.models import (
     Subscription,
 )
 
+from home.models import Video
+from home.serializers import BaseVideoSerializer
+
 class RegisterSerializer(serializers.ModelSerializer):
     username = serializers.CharField(max_length=60)
     email = serializers.EmailField()
@@ -34,10 +37,12 @@ class ProfileSerializer(serializers.ModelSerializer):
     is_online = serializers.SerializerMethodField()
     subscribers_count = serializers.SerializerMethodField()  # Количество подписчиков
     subscriptions_count = serializers.SerializerMethodField()  # Количество подписок
+    user_videos = serializers.SerializerMethodField()
+
 
     class Meta:
         model = User 
-        fields = ['id', 'username', 'email', 'last_online', 'is_online', 'subscribers_count', 'subscriptions_count']
+        fields = ['id', 'username', 'email', 'last_online', 'is_online', 'subscribers_count', 'subscriptions_count', 'user_videos']
 
     def get_is_online(self, obj):
         # Проверяем, был ли пользователь активен в последние 5 минут
@@ -59,6 +64,10 @@ class ProfileSerializer(serializers.ModelSerializer):
         if request and instance != request.user:
             data.pop('email', None)
         return data
+    
+    def get_user_videos(self, obj):
+        videos = Video.objects.filter(author=obj)
+        return BaseVideoSerializer(videos, many=True).data
 
 class SubscriptionSerializer(serializers.ModelSerializer):
     subscriber = serializers.StringRelatedField()  # Имя подписчика

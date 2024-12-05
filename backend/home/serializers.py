@@ -6,7 +6,6 @@ from home.models import (
     Comment,
     CommentVoice,
 )
-from users.models import User
 
 class CategoryVideoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -37,13 +36,15 @@ class BaseVideoSerializer(serializers.ModelSerializer):
     category_video = CategoryVideoSerializer()
     created_at = serializers.DateTimeField(format='%Y-%m-%d %H:%M')
     author = serializers.StringRelatedField(read_only=True)
+    author_id = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Video
-        fields = ['id', 'category_video', 'video_file', 'author', 'views_count', 'created_at', 'video_preview']
+        fields = ['id', 'category_video', 'video_file', 'author', 'author_id', 'views_count', 'created_at', 'video_preview']
 
 class CreateVideoSerializer(BaseVideoSerializer):
     category_video = serializers.PrimaryKeyRelatedField(queryset=CategoryVideo.objects.all())
+    
     class Meta(BaseVideoSerializer.Meta):
         pass
 
@@ -51,5 +52,5 @@ class CreateVideoSerializer(BaseVideoSerializer):
         data = super().to_representation(instance)
         data.pop('id')
         data.pop('views_count')
-        data.pop('comments')
+        data.pop('author_id')
         return data

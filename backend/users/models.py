@@ -1,5 +1,5 @@
 from django.db import models
-from datetime import date
+from datetime import date, timedelta
 from django.utils.timezone import now
 
 from django.contrib.auth.models import AbstractUser
