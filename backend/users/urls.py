@@ -11,11 +11,17 @@ from users.views import (
     ListUserAPIView,
     SubscriptionView,
     AddInterestsAPIView,
+    SendFriendRequestView,
+    RespondToFriendRequestView,
+    FriendListView,
 )
 
 app_name = 'users'
 
 urlpatterns = [
+    path('api/friends/send_request/<int:user_id>/', SendFriendRequestView.as_view()),
+    path('api/friends/respond_request/<int:friendship_id>/', RespondToFriendRequestView.as_view()),
+    path('api/friends/list/', FriendListView.as_view(), name='friend_list'),
     path('api/add_interests/', AddInterestsAPIView.as_view(),),
     path('api/subscription/<int:user_id>/', SubscriptionView.as_view(),),
     path('api/list_user/', ListUserAPIView.as_view()),

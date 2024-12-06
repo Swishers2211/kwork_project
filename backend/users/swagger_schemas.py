@@ -209,3 +209,118 @@ user_profile_schemas = {
             404: openapi.Response(description="Пользователь не найден"),
         },
 }
+
+status_subscribe = {
+    "operation_summary": "Статус подписки",
+    "operation_description": "Возвращает статус подписки",
+    "manual_parameters": [
+        openapi.Parameter(
+            'target_user',
+            openapi.IN_QUERY,
+            description="ID пользователя",
+            type=openapi.TYPE_STRING
+        ),
+    ],
+    "responses": {
+        200: openapi.Response(
+            description="Статус подписки",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'status': openapi.Schema(
+                        type=openapi.TYPE_STRING,
+                        description="Статус подписки",
+                    )
+                }
+            )
+        )
+    }
+}
+
+# Отправка запроса в друзья
+send_friend_request_schemas = {
+    'operation_summary': "Отправить запрос в друзья",
+    'operation_description': "Отправляет запрос на добавление в друзья указанному пользователю по его `user_id`.",
+    'responses': {
+        201: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'id': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID запроса дружбы'),
+                'sender': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID отправителя'),
+                'sender_username': openapi.Schema(type=openapi.TYPE_STRING, description='Имя пользователя отправителя'),
+                'receiver': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID получателя'),
+                'receiver_username': openapi.Schema(type=openapi.TYPE_STRING, description='Имя пользователя получателя'),
+                'status': openapi.Schema(type=openapi.TYPE_STRING, description='Статус запроса дружбы', enum=['pending', 'accepted', 'declined']),
+                'created_at': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME, description='Дата и время создания'),
+                'updated_at': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME, description='Дата и время последнего обновления'),
+            }
+        ),
+        400: openapi.Response(description="Запрос уже отправлен"),
+        404: openapi.Response(description="Пользователь не найден"),
+    },
+}
+
+# Ответить на запрос в друзья
+respond_to_friend_request = {
+        "request_body":openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'action': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Действие: `accept` для принятия или `decline` для отклонения.",
+                    enum=['accept', 'decline'],
+                ),
+            },
+            required=['action'],
+        ),
+        "responses":{
+            200: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'id': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID запроса дружбы'),
+                    'sender': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID отправителя'),
+                    'sender_username': openapi.Schema(type=openapi.TYPE_STRING, description='Имя пользователя отправителя'),
+                    'receiver': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID получателя'),
+                    'receiver_username': openapi.Schema(type=openapi.TYPE_STRING, description='Имя пользователя получателя'),
+                    'status': openapi.Schema(
+                        type=openapi.TYPE_STRING,
+                        description='Статус запроса дружбы',
+                        enum=['pending', 'accepted', 'declined'],
+                    ),
+                    'created_at': openapi.Schema(
+                        type=openapi.TYPE_STRING,
+                        format=openapi.FORMAT_DATETIME,
+                        description='Дата и время создания запроса',
+                    ),
+                    'updated_at': openapi.Schema(
+                        type=openapi.TYPE_STRING,
+                        format=openapi.FORMAT_DATETIME,
+                        description='Дата и время последнего обновления запроса',
+                    ),
+                },
+            ),
+            400: openapi.Response(description="Неверное действие"),
+            404: openapi.Response(description="Запрос не найден"),
+        },
+        "operation_summary":"Ответ на запрос дружбы",
+        "operation_description":"Позволяет пользователю принять или отклонить запрос дружбы, передав действие в теле запроса.",
+}
+
+# Список друзей
+friend_list_schema = {
+    "operation_summary": "Список друзей",
+    "operation_description": "Возвращает список всех друзей текущего пользователя. Показывает друзей, у которых статус запроса дружбы — `accepted`.",
+    "responses": {
+        200: openapi.Schema(
+            type=openapi.TYPE_ARRAY,
+            items=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'id': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID друга'),
+                    'username': openapi.Schema(type=openapi.TYPE_STRING, description='Имя пользователя друга'),
+                },
+            ),
+            description="Список друзей пользователя",
+        ),
+    },
+}

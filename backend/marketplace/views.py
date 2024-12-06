@@ -3,6 +3,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 from rest_framework.response import Response
 
+from django.db.models import Q
+
 from drf_yasg.utils import swagger_auto_schema
 
 from marketplace.models import (

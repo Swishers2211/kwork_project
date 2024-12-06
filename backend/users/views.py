@@ -7,30 +7,36 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authentication import authenticate
-
 from rest_framework_simplejwt.views import TokenRefreshView, TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.exceptions import InvalidToken
-
 from rest_framework_simplejwt.tokens import RefreshToken
+
 from django.middleware import csrf
+from django.db.models import Q
+
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 from users.swagger_schemas import (
     list_user_schemas,
     user_profile_schemas,
+    send_friend_request_schemas,
+    friend_list_schema,
+    respond_to_friend_request,
 )
 
 from users.models import (
     User,
     Subscription,
     Interests,
+    Friendship,
 )
 from users.serializers import (
     RegisterSerializer, 
     ProfileSerializer, 
     InterestSerializer,
+    FriendshipSerializer,
 )
 
 class CheckAuthAPIView(APIView): # Класс проверки авторизован ли пользователь или нет
@@ -106,6 +112,28 @@ def get_tokens_for_user(user): # функция для генерациии то
 class LoginAPIView(APIView): # Класс для входа в систему
     permission_classes = [AllowAny]
 
+    @swagger_auto_schema(
+        operation_summary="Вход в систему",
+        operation_description="Позволяет войти в систему",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'username': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Введите usernmae"
+                ),
+                'password': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Введите пароль"
+                ),
+            },
+        ),
+        responses={
+            200: openapi.Response(description="Вы вошли в систему."),
+            400: openapi.Response(description="Неверные данные"),
+            403: openapi.Response(description="Нет доступа к логину"),
+        },
+    )
     def post(self, request):
         data = request.data
         username = data.get('username')
@@ -266,6 +294,20 @@ class ListUserAPIView(APIView):
 class SubscriptionView(APIView):
     permission_classes = [IsAuthenticated]
 
+    def get(self, request, user_id):
+        current_user = request.user
+        try:
+            target_user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "Пользователь не найден."}, status=404)
+        
+        if target_user == current_user:
+            return Response({'status': 'Это вы'})
+        
+        if Subscription.objects.filter(subscriber=current_user, target=target_user).exists():
+            return Response({'status': 'Отписаться'})
+        return Response({'status': 'Подписаться'})
+
     @swagger_auto_schema(
         operation_summary="Подписка на другого пользователя",
         operation_description="Осуществляет подписку текущего пользователя на других пользователей",
@@ -288,6 +330,9 @@ class SubscriptionView(APIView):
             target_user = User.objects.get(id=user_id)
         except User.DoesNotExist:
             return Response({"error": "Пользователь не найден."}, status=404)
+        
+        if target_user == current_user:
+            return Response({'status': 'Нельзя подписаться на себя'})
 
         if Subscription.objects.filter(subscriber=current_user, target=target_user).exists():
             return Response({"status": "Подписка уже существует."})
@@ -377,3 +422,56 @@ class AddInterestsAPIView(APIView):
         user.save()
 
         return Response({'message': 'Интересы обновлены'}, status=status.HTTP_200_OK)
+
+class SendFriendRequestView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(**send_friend_request_schemas)
+    def post(self, request, user_id):
+        try:
+            receiver = User.objects.get(User, id=user_id)
+        except User.DoesNotExist:
+            return Response({'message_error': 'Пользователь не найден'})
+        if Friendship.objects.filter(sender=request.user, receiver=receiver).exists():
+            return Response({'message': 'Request already sent!'}, status=400)
+
+        friendship = Friendship.objects.create(sender=request.user, receiver=receiver)
+        serializer = FriendshipSerializer(friendship)
+        return Response(serializer.data, status=201)
+
+class RespondToFriendRequestView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(**respond_to_friend_request)
+    def post(self, request, friendship_id):
+        try:
+            friendship = Friendship.objects.get(id=friendship_id, receiver=request.user)
+        except Friendship.DoesNotExist:
+            return Response({'message_error': 'Не найдено'}, status=404)
+
+        action = request.data.get('action')
+
+        if action not in ['accept', 'decline']:
+            return Response({'error': 'Invalid action!'}, status=400)
+
+        if action == 'accept':
+            friendship.status = 'accepted'
+        elif action == 'decline':
+            friendship.status = 'declined'
+
+        friendship.save()
+        data = FriendshipSerializer(friendship).data
+        return Response(data, status=200)
+
+class FriendListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(**friend_list_schema)
+    def get(self, request):
+        friendships = Friendship.objects.filter((Q(sender=request.user) | Q(receiver=request.user)) & Q(status='accepted'))
+        friends = [
+            friendship.sender if friendship.receiver == request.user else friendship.receiver
+            for friendship in friendships
+        ]
+        data = [{'id': friend.id, 'username': friend.username} for friend in friends]
+        return Response(data)

@@ -9,7 +9,6 @@ from home.swagger_chemas import (
     create_video,
     videos_schemas,
 )
-
 from users.models import (
     User,
     Subscription
@@ -47,7 +46,7 @@ class VideosAPIView(APIView):
 
 class CreateVideoAPIView(APIView):
     permission_classes = [IsAuthenticated]
-    
+
     @swagger_auto_schema(**create_video)
     def post(self, request):
         serializer = CreateVideoSerializer(data=request.data)

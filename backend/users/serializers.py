@@ -6,6 +6,7 @@ from users.models import (
     User, 
     Interests, 
     Subscription,
+    Friendship
 )
 
 from home.models import Video
@@ -76,3 +77,12 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subscription
         fields = ['id', 'subscriber', 'target', 'created_at']
+
+class FriendshipSerializer(serializers.ModelSerializer):
+    sender_username = serializers.ReadOnlyField(source='sender.username')
+    receiver_username = serializers.ReadOnlyField(source='receiver.username')
+
+    class Meta:
+        model = Friendship
+        fields = ['id', 'sender', 'sender_username', 'receiver', 'receiver_username', 'status', 'created_at', 'updated_at']
+        read_only_fields = ['sender', 'status', 'created_at', 'updated_at']

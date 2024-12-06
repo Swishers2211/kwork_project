@@ -64,3 +64,18 @@ class Subscription(models.Model):
 
     def __str__(self):
         return f"{self.subscriber.username} -> {self.target.username}"
+
+class Friendship(models.Model):
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='friend_ship_requests_sent', verbose_name='Отправитель запроса')
+    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='friend_ship_requests_received', verbose_name='Получатель запроса')
+    status = models.CharField(max_length=10, choices=[('pending', 'В ожидании'), ('accepted', 'Принят'), ('declined', 'Отклонен')], default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('sender', 'receiver')
+        verbose_name = 'Друг'
+        verbose_name_plural = 'Друзья'
+
+    def __str__(self):
+        return f'Отправитель запроса дружбы {self.sender.username} - Получатель запроса дружбы {self.receiver.username}'
