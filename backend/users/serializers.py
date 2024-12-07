@@ -6,7 +6,7 @@ from users.models import (
     User, 
     Interests, 
     Subscription,
-    Friendship
+    Friendship,
 )
 
 from home.models import Video
@@ -39,11 +39,12 @@ class ProfileSerializer(serializers.ModelSerializer):
     subscribers_count = serializers.SerializerMethodField()  # Количество подписчиков
     subscriptions_count = serializers.SerializerMethodField()  # Количество подписок
     user_videos = serializers.SerializerMethodField()
-
+    follow_you = serializers.SerializerMethodField()
+    follow_him = serializers.SerializerMethodField()
 
     class Meta:
         model = User 
-        fields = ['id', 'username', 'email', 'last_online', 'is_online', 'subscribers_count', 'subscriptions_count', 'user_videos']
+        fields = ['id', 'username', 'email', 'follow_you', 'follow_him', 'last_online', 'is_online', 'subscribers_count', 'subscriptions_count', 'user_videos']
 
     def get_is_online(self, obj):
         # Проверяем, был ли пользователь активен в последние 5 минут
@@ -69,6 +70,16 @@ class ProfileSerializer(serializers.ModelSerializer):
     def get_user_videos(self, obj):
         videos = Video.objects.filter(author=obj)
         return BaseVideoSerializer(videos, many=True).data
+    
+    def get_follow_you(self, obj):
+        """Проверяет, подписан ли пользователь на вас."""
+        request_user = self.context['request'].user  # Текущий пользователь
+        return Subscription.objects.filter(subscriber=obj, target=request_user).exists()
+
+    def get_follow_him(self, obj):
+        """Проверяет, подписаны ли вы на пользователя."""
+        request_user = self.context['request'].user  # Текущий пользователь
+        return Subscription.objects.filter(subscriber=request_user, target=obj).exists()
 
 class SubscriptionSerializer(serializers.ModelSerializer):
     subscriber = serializers.StringRelatedField()  # Имя подписчика
