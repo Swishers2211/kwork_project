@@ -1,4 +1,7 @@
 import json
+import base64
+import os
+from django.conf import settings
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.db.models import Q
 from channels.db import database_sync_to_async
@@ -61,9 +64,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
         message = text_data_json.get('message')
-        image = text_data_json.get('image')
-        video = text_data_json.get('video')
-        voice_message = text_data_json.get('voice_message')
+        image = text_data_json.get('image')  # base64
+        video = text_data_json.get('video')  # base64
+        voice_message = text_data_json.get('voice_message')  # base64
         message_action = text_data_json.get('message_action')
         user = self.scope['user']
 
@@ -75,9 +78,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 self.chat_id = int(self.room_group_name.split('_')[-1])
 
         if self.chat_id:
-            # Сохраняем сообщение и получаем его ID
-            message_instance = await self.save_message(self.room_group_name, user, message, image, video, voice_message)
-
+            # Обрабатываем действия с сообщениями
             if message_action == 'message_delete':
                 message_id = text_data_json.get('message_id')
                 if message_id:
@@ -105,37 +106,108 @@ class ChatConsumer(AsyncWebsocketConsumer):
                             }
                         )
             else:
+                # Декодируем и сохраняем файлы, если они есть
+                image_path, video_path, voice_message_path = None, None, None
+
+                if image:
+                    image_binary = base64.b64decode(image)
+                    image_path = os.path.join(settings.MEDIA_ROOT, 'messages/images', f'image_{user.id}.jpg')
+                    os.makedirs(os.path.dirname(image_path), exist_ok=True)
+                    with open(image_path, 'wb') as image_file:
+                        image_file.write(image_binary)
+                    image_file_relative_path = os.path.relpath(image_path, settings.MEDIA_ROOT)
+
+                if video:
+                    video_binary = base64.b64decode(video)
+                    video_path = os.path.join(settings.MEDIA_ROOT, 'messages/videos', f'video_{user.id}.mp4')
+                    os.makedirs(os.path.dirname(video_path), exist_ok=True)
+                    with open(video_path, 'wb') as video_file:
+                        video_file.write(video_binary)
+                    video_file_relative_path = os.path.relpath(video_path, settings.MEDIA_ROOT)
+
+                if voice_message:
+                    voice_binary = base64.b64decode(voice_message)
+                    voice_message_path = os.path.join(settings.MEDIA_ROOT, 'messages/voice_message', f'voice_{user.id}.mp3')
+                    os.makedirs(os.path.dirname(voice_message_path), exist_ok=True)
+                    with open(voice_message_path, 'wb') as voice_file:
+                        voice_file.write(voice_binary)
+                    voice_file_relative_path = os.path.relpath(voice_message_path, settings.MEDIA_ROOT)
+
+                # Сохраняем сообщение
+                message_instance = await self.save_message(
+                    self.room_group_name,
+                    user,
+                    message,
+                    image_path,
+                    video_path,
+                    voice_message_path
+                )
+
                 # Отправляем сообщение всем в группе
                 await self.channel_layer.group_send(
                     self.room_group_name,
                     {
                         'type': 'chat_message',
                         'message': message,
-                        'video': video,
-                        'image': image,
-                        'voice_message': voice_message,
+                        'image': image_path,
+                        'video': video_path,
+                        'voice_message': voice_message_path,
                         'sender_id': user.id,
                         'sender_username': user.username,
-                        'message_read': message_instance.message_read,  # Добавляем message_id
+                        'message_read': message_instance.message_read,
                     }
                 )
         elif self.other_user:
-            message_instance = await self.save_message(self.room_group_name, user, message, image, video)
+            # Если есть другой пользователь, сохраняем сообщение
+            image_path, video_path, voice_message_path = None, None, None
 
-            # Отправляем сообщение всем в группе
-            await self.channel_layer.group_send(
+            if image:
+                image_binary = base64.b64decode(image)
+                image_path = os.path.join(settings.MEDIA_ROOT, 'messages/images', f'image_{user.id}.jpg')
+                os.makedirs(os.path.dirname(image_path), exist_ok=True)
+                with open(image_path, 'wb') as image_file:
+                    image_file.write(image_binary)
+                image_file_relative_path = os.path.relpath(image_path, settings.MEDIA_ROOT)
+
+            if video:
+                video_binary = base64.b64decode(video)
+                video_path = os.path.join(settings.MEDIA_ROOT, 'messages/videos', f'video_{user.id}.mp4')
+                os.makedirs(os.path.dirname(video_path), exist_ok=True)
+                with open(video_path, 'wb') as video_file:
+                    video_file.write(video_binary)
+                video_file_relative_path = os.path.relpath(video_path, settings.MEDIA_ROOT)
+
+            if voice_message:
+                voice_binary = base64.b64decode(voice_message)
+                voice_message_path = os.path.join(settings.MEDIA_ROOT, 'messages/voice_message', f'voice_{user.id}.mp3')
+                os.makedirs(os.path.dirname(voice_message_path), exist_ok=True)
+                with open(voice_message_path, 'wb') as voice_file:
+                    voice_file.write(voice_binary)
+                voice_file_relative_path = os.path.relpath(voice_message_path, settings.MEDIA_ROOT)
+
+            message_instance = await self.save_message(
                 self.room_group_name,
-                {
-                    'type': 'chat_message',
-                    'message': message,
-                    'video': video,
-                    'image': image,
-                    'voice_message': voice_message,
-                    'sender_id': user.id,
-                    'sender_username': user.username,
-                    'message_read': message_instance.message_read,  # Добавляем message_id
-                }
+                user,
+                message,
+                image_path,
+                video_path,
+                voice_message_path
             )
+
+        # Отправляем сообщение всем в группе
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'chat_message',
+                'message': message,
+                'image': image_path,
+                'video': video_path,
+                'voice_message': voice_message_path,
+                'sender_id': user.id,
+                'sender_username': user.username,
+                'message_read': message_instance.message_read,
+            }
+        )
 
     @database_sync_to_async
     def mark_message_as_read(self, message_id):

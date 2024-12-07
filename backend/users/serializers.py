@@ -73,13 +73,17 @@ class ProfileSerializer(serializers.ModelSerializer):
     
     def get_follow_you(self, obj):
         """Проверяет, подписан ли пользователь на вас."""
-        request_user = self.context['request'].user  # Текущий пользователь
-        return Subscription.objects.filter(subscriber=obj, target=request_user).exists()
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        return Subscription.objects.filter(subscriber=obj, target=request.user).exists()
 
     def get_follow_him(self, obj):
         """Проверяет, подписаны ли вы на пользователя."""
-        request_user = self.context['request'].user  # Текущий пользователь
-        return Subscription.objects.filter(subscriber=request_user, target=obj).exists()
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        return Subscription.objects.filter(subscriber=request.user, target=obj).exists()
 
 class SubscriptionSerializer(serializers.ModelSerializer):
     subscriber = serializers.StringRelatedField()  # Имя подписчика

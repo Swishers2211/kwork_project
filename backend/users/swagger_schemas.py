@@ -140,6 +140,14 @@ user_profile_schemas = {
                         type=openapi.TYPE_STRING,
                         description="Электронная почта пользователя"
                     ),
+                    'follow_you': openapi.Schema(
+                        type=openapi.TYPE_BOOLEAN,
+                        description="Следует за вами"
+                    ),
+                    'follow_him': openapi.Schema(
+                        type=openapi.TYPE_BOOLEAN,
+                        description="Следуете за ним"
+                    ),
                     'last_online': openapi.Schema(
                         type=openapi.TYPE_STRING,
                         format='date-time',

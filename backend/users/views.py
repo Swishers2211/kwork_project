@@ -196,8 +196,6 @@ class DashboardAPIView(APIView):
 
     @swagger_auto_schema(**user_profile_schemas)
     def get(self, request, user_id):
-        current_user = request.user
-
         user = User.objects.filter(pk=user_id).first()
 
         if not user:
